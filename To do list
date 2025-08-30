@@ -1,0 +1,154 @@
+import json
+import os
+import matplotlib.pyplot as plt
+
+# ------------------ Task Class ------------------
+class Task:
+    def __init__(self, title, description, category, completed=False):
+        self.title = title
+        self.description = description
+        self.category = category
+        self.completed = completed
+
+    def mark_completed(self):
+        self.completed = True
+
+
+# ------------------ File Handling ------------------
+def save_tasks(tasks, filename="tasks.json"):
+    with open(filename, "w") as f:
+        json.dump([task.__dict__ for task in tasks], f, indent=4)
+
+
+def load_tasks(filename="tasks.json"):
+    if not os.path.exists(filename):
+        return []
+    with open(filename, "r") as f:
+        data = json.load(f)
+        return [Task(**task) for task in data]
+
+
+# ------------------ Display Function ------------------
+def display_tasks(tasks):
+    if not tasks:
+        print("\nNo tasks found!\n")
+        return
+    print("\nYour Tasks:")
+    for i, task in enumerate(tasks, 1):
+        status = "Completed" if task.completed else "Pending"
+        print(f"{i}. {task.title} ({task.category}) - {status}")
+        print(f"   Description: {task.description}")
+    print()
+
+
+# ------------------ Chart Function with Subplots ------------------
+def show_task_chart(tasks):
+    if not tasks:
+        print("\nNo tasks to display in chart.\n")
+        return
+    
+    # Count completed vs pending
+    completed = [task for task in tasks if task.completed]
+    pending = [task for task in tasks if not task.completed]
+
+    # Pie Chart Data
+    total_labels = ["Completed", "Pending"]
+    total_values = [len(completed), len(pending)]
+
+    # Completed by category
+    completed_categories = {}
+    for task in completed:
+        completed_categories[task.category] = completed_categories.get(task.category, 0) + 1
+
+    # Pending by category
+    pending_categories = {}
+    for task in pending:
+        pending_categories[task.category] = pending_categories.get(task.category, 0) + 1
+
+    # Subplots
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+    # Pie 1: Overall status
+    axes[0].pie(total_values, labels=total_labels, autopct="%1.1f%%", startangle=90)
+    axes[0].set_title("Overall Task Status")
+
+    # Pie 2: Completed breakdown
+    if completed_categories:
+        axes[1].pie(completed_categories.values(), labels=completed_categories.keys(),
+                    autopct="%1.1f%%", startangle=90)
+        axes[1].set_title("Completed by Category")
+    else:
+        axes[1].text(0.5, 0.5, "No Completed Tasks", ha="center", va="center")
+
+    # Pie 3: Pending breakdown
+    if pending_categories:
+        axes[2].pie(pending_categories.values(), labels=pending_categories.keys(),
+                    autopct="%1.1f%%", startangle=90)
+        axes[2].set_title("Pending by Category")
+    else:
+        axes[2].text(0.5, 0.5, "No Pending Tasks", ha="center", va="center")
+
+    plt.tight_layout()
+    plt.show()
+
+
+# ------------------ Main Menu ------------------
+def main():
+    tasks = load_tasks()
+
+    while True:
+        print("\n==== Personal To-Do List ====")
+        print("1. Add Task")
+        print("2. View Tasks")
+        print("3. Mark Task as Completed")
+        print("4. Delete Task")
+        print("5. Show Task Chart")
+        print("6. Exit")
+
+        choice = input("Choose an option (1-6): ")
+
+        if choice == "1":
+            title = input("Enter task title: ")
+            description = input("Enter task description: ")
+            category = input("Enter task category (Work/Personal/Urgent): ")
+            tasks.append(Task(title, description, category))
+            save_tasks(tasks)
+            print("Task added successfully!")
+
+        elif choice == "2":
+            display_tasks(tasks)
+
+        elif choice == "3":
+            display_tasks(tasks)
+            try:
+                task_no = int(input("Enter task number to mark as completed: "))
+                tasks[task_no - 1].mark_completed()
+                save_tasks(tasks)
+                print("Task marked as completed!")
+            except (ValueError, IndexError):
+                print("Invalid task number.")
+
+        elif choice == "4":
+            display_tasks(tasks)
+            try:
+                task_no = int(input("Enter task number to delete: "))
+                tasks.pop(task_no - 1)
+                save_tasks(tasks)
+                print("Task deleted successfully!")
+            except (ValueError, IndexError):
+                print("Invalid task number.")
+
+        elif choice == "5":
+            show_task_chart(tasks)
+
+        elif choice == "6":
+            save_tasks(tasks)
+            print("Exiting... Your tasks are saved.")
+            break
+
+        else:
+            print("Invalid choice! Please select between 1-6.")
+
+
+if __name__ == "__main__":
+    main()
